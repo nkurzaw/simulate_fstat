@@ -1,0 +1,88 @@
+---
+title: "Simulating *F*-statistics"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+
+Let's create 5000 data points from a multi-group comparison with no difference in group means
+
+```{r}
+n_data <- 5000
+n_per_group <- 10
+n_groups <- 3
+overall_mean <- 0
+overal_sd <- 1
+```
+
+```{r}
+set.seed(1)
+sim_df <- bind_rows(lapply(seq_len(5000), function(x){
+  tibble(
+    id = x,
+    value = rnorm(n = n_per_group * n_groups, 
+                  mean = overall_mean,
+                  sd = overal_sd),
+    group = rep(letters[seq_len(n_groups)], each = 10)
+  )
+}))
+```
+
+As an example we will inspect one of the instances: 
+```{r}
+filter(sim_df, id == 20) %>% 
+  ggplot(aes(x = group, y = value)) +
+  geom_dotplot(binaxis='y', stackdir='center') +
+  stat_summary(fun=mean, geom="point", 
+               shape=18, color="red")
+```
+
+
+Now we will compute, both the group mean and the overall mean for each instance (unique id):
+
+```{r}
+sim_df <- sim_df %>% 
+  group_by(id) %>% 
+  mutate(obs_overall_mean = mean(value)) %>% 
+  group_by(id, group) %>% 
+  mutate(obs_group_mean = mean(value)) %>% 
+  ungroup()
+
+sim_df
+```
+
+And now we'll compute the residuals within groups and globally:
+
+```{r}
+sim_df <- sim_df %>% 
+  mutate(overall_residuals = value - obs_overall_mean,
+         group_residuals = value - obs_group_mean) 
+
+sim_df
+```
+
+Next, we will compute residual sum of squares
+```{r}
+rss_df <- sim_df %>% 
+  group_by(id) %>% 
+  summarise(RSS_0 = sum(overall_residuals^2),
+            RSS_1 = sum(group_residuals^2)) %>% 
+  ungroup
+```
+```{r}
+hist(rss_df$RSS_0, probability = TRUE)
+lines(seq(min(rss_df$RSS_0), max(rss_df$RSS_0), 0.1),
+      dchisq(seq(min(rss_df$RSS_0), max(rss_df$RSS_0), 0.1), df = n_groups * n_per_group - 1), col = "red")
+```
+```{r}
+hist(rss_df$RSS_1, probability = TRUE)
+lines(seq(min(rss_df$RSS_1), max(rss_df$RSS_1), 0.1),
+      dchisq(seq(min(rss_df$RSS_1), max(rss_df$RSS_1), 0.1), df = n_groups * n_per_group - n_groups), col = "red")
+```
