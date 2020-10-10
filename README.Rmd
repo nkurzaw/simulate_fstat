@@ -1,6 +1,6 @@
 ---
 title: "Simulating *F*-statistics"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -86,3 +86,21 @@ hist(rss_df$RSS_1, probability = TRUE)
 lines(seq(min(rss_df$RSS_1), max(rss_df$RSS_1), 0.1),
       dchisq(seq(min(rss_df$RSS_1), max(rss_df$RSS_1), 0.1), df = n_groups * n_per_group - n_groups), col = "red")
 ```
+```{r}
+hist(rss_df$RSS_0 - rss_df$RSS_1, probability = TRUE)
+lines(seq(min(rss_df$RSS_0 - rss_df$RSS_1), 
+          max(rss_df$RSS_0 - rss_df$RSS_1), 0.1),
+      dchisq(seq(min(rss_df$RSS_0 - rss_df$RSS_1), 
+                 max(rss_df$RSS_0 - rss_df$RSS_1), 0.1), df = n_groups - 1), col = "red")
+```
+```{r}
+d1 <- n_groups - 1
+d2 <- n_groups * n_per_group - n_groups
+Fstat <- (rss_df$RSS_0 - rss_df$RSS_1)/rss_df$RSS_1 * d2/d1
+
+hist(Fstat, probability = TRUE)
+lines(seq(min(Fstat), max(Fstat), 0.1),
+      df(seq(min(Fstat), max(Fstat), 0.1), 
+         df1 = d1, df2 = d2), col = "red")
+```
+
